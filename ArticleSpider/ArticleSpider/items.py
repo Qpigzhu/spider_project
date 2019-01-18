@@ -10,6 +10,7 @@ from w3lib.html import remove_tags #去掉网页标签
 import re
 import scrapy
 from ArticleSpider.settings import SQL_DATETIME_FORMAT
+from ArticleSpider.utlis.common import extract_num,extract_num2
 from scrapy.loader.processors import MapCompose,TakeFirst,Join
 from scrapy.loader import ItemLoader
 
@@ -29,6 +30,7 @@ class ArticleItemLoader(ItemLoader):
     default_output_processor = TakeFirst()
 
 
+#伯乐在线
 def handle_create_data(value):
     #处理时间函数
     try:
@@ -44,18 +46,6 @@ def return_value(value):
     #返回列表值
     return value
 
-def get_nums(value):
-    """
-
-    去除评论,点赞,收藏数的正则表达式,只取数字
-    """
-    match_re = re.match(".*?(\d+).*?", value)
-    if match_re:
-        nums = int(match_re.group(1))
-    else:
-        nums = 0
-
-    return nums
 
 
 def remove_comment_tags(value):
@@ -81,13 +71,13 @@ class JoBoleArticleItem(scrapy.Item):  #伯乐Item
     )
     front_image_path = scrapy.Field()
     praise_nums = scrapy.Field(
-        input_processor = MapCompose(get_nums)
+        input_processor = MapCompose(extract_num)
     )
     comment_nums = scrapy.Field(
-        input_processor=MapCompose(get_nums)
+        input_processor=MapCompose(extract_num)
     )
     fav_nums = scrapy.Field(
-        input_processor=MapCompose(get_nums)
+        input_processor=MapCompose(extract_num)
     )
     content = scrapy.Field()
     tags = scrapy.Field(
@@ -107,6 +97,7 @@ class JoBoleArticleItem(scrapy.Item):  #伯乐Item
         return insert_sql,params
 
 
+#拉钩网
 def remove_splash(value):
     #去掉工作城市的斜线
     return value.replace("/","")
@@ -115,7 +106,6 @@ def handle_jobaddr(value):
     addr_list = value.split("\n")
     addr_list = [item.strip() for item in addr_list if item.strip()!="查看地图"]
     return "".join(addr_list)
-
 
 
 class LgGouArticleItem(scrapy.Item):
@@ -160,3 +150,92 @@ class LgGouArticleItem(scrapy.Item):
         )
 
         return insert_sql, params
+
+
+
+#知乎问题item
+class ZhihuQuestionItem(scrapy.Item):
+    zhihu_id = scrapy.Field()
+    topics = scrapy.Field()
+    url = scrapy.Field()
+    title = scrapy.Field()
+    content = scrapy.Field()
+    answer_num = scrapy.Field()
+    comments_num = scrapy.Field()
+    watch_user_num = scrapy.Field()
+    click_num = scrapy.Field()
+    crawl_time = scrapy.Field()
+
+
+    def get_insert_sql(self):
+        #插入知乎question表的sql语句
+        insert_sql = """
+            insert into zhihu_question(zhihu_id,topics,url,title,content,answer_num,
+            comments_num,watch_user_num,click_num,crawl_time)values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """
+
+        # 插入知乎question表的sql语句
+        insert_sql = """
+                    insert into zhihu_question(zhihu_id, topics, url, title, content, answer_num, comments_num,
+                      watch_user_num, click_num, crawl_time
+                      )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON DUPLICATE KEY UPDATE content=VALUES(content), answer_num=VALUES(answer_num), comments_num=VALUES(comments_num),
+                      watch_user_num=VALUES(watch_user_num), click_num=VALUES(click_num)
+                """
+        zhihu_id = int(self["zhihu_id"][0])
+        topics = ",".join(self["topics"])
+        url = self["url"][0]
+        title = "".join(self["title"])
+        content = "".join(self["content"])
+        answer_num = extract_num("".join(self["answer_num"]))
+        comments_num = extract_num("".join(self["comments_num"]))
+
+        if len(self["watch_user_num"]) == 2:
+            watch_user_num = extract_num2(self["watch_user_num"][0])
+            click_num = extract_num2(self["watch_user_num"][1])
+        else:
+            watch_user_num = extract_num2(self["watch_user_num"][0])
+            click_num = 0
+
+        crawl_time = datetime.datetime.now().strftime(SQL_DATETIME_FORMAT)
+
+        params = (zhihu_id, topics, url, title, content, answer_num, comments_num,
+                  watch_user_num, click_num, crawl_time)
+
+        return insert_sql, params
+
+class ZhihuAnswerItem(scrapy.Item):
+        zhihu_id = scrapy.Field()
+        url = scrapy.Field()
+        question_id = scrapy.Field()
+        author_id = scrapy.Field()
+        content = scrapy.Field()
+        parise_num = scrapy.Field()
+        comments_num = scrapy.Field()
+        create_time = scrapy.Field()
+        update_time = scrapy.Field()
+        crawl_time = scrapy.Field()
+
+        def get_insert_sql(self):
+            insert_sql = """
+                        insert into zhihu_answer(zhihu_id, url, question_id, author_id, content, parise_num, comments_num,
+                          create_time, update_time, crawl_time
+                          ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                          ON DUPLICATE KEY UPDATE content=VALUES(content), comments_num=VALUES(comments_num), parise_num=VALUES(parise_num),
+                          update_time=VALUES(update_time)
+                    """
+
+            create_time = datetime.datetime.fromtimestamp(self["create_time"]).strftime(SQL_DATETIME_FORMAT)
+            update_time = datetime.datetime.fromtimestamp(self["update_time"]).strftime(SQL_DATETIME_FORMAT)
+            params = (
+                self["zhihu_id"], self["url"], self["question_id"],
+                self["author_id"], self["content"], self["parise_num"],
+                self["comments_num"], create_time, update_time,
+                self["crawl_time"].strftime(SQL_DATETIME_FORMAT),
+            )
+
+            return insert_sql, params
+
+
+
