@@ -45,9 +45,9 @@ class ZhihuSpider(scrapy.Spider):
             if match_obj:
                 request_url = match_obj.group(1)
                 question_id = match_obj.group(2)
-                yield scrapy.Request(request_url,headers=self.headers,callback=self.parse_question)
-            else:
-                yield scrapy.Request(url,headers=self.headers,callback=self.parse)
+                yield scrapy.Request(request_url,callback=self.parse_question)
+            # else:
+            #     yield scrapy.Request(url,callback=self.parse)
 
 
         #这里打印出https://www.zhihu.com/notifications页面中登录者的昵称验证带上cookies登录完成
@@ -138,6 +138,7 @@ class ZhihuSpider(scrapy.Spider):
     # scrapy请求的开始时start_request
     def start_requests(self):
         zhihu_findUrl = 'https://www.zhihu.com/'
+        # zhihu_findUrl = "https://www.zhihu.com/notifications"  #登录过期时验证网站
         if not Path('zhihuCookies.json').exists():
             __class__.loginZhihu()  # 先执行login，保存cookies之后便可以免登录操作
 

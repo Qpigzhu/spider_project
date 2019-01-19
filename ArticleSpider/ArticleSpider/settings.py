@@ -53,9 +53,11 @@ ROBOTSTXT_OBEY = False #改为False
 
 # Enable or disable downloader middlewares
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
-#DOWNLOADER_MIDDLEWARES = {
-#    'ArticleSpider.middlewares.ArticlespiderDownloaderMiddleware': 543,
-#}
+DOWNLOADER_MIDDLEWARES = {
+   'ArticleSpider.middlewares.RandomUserAgentMiddlware': 543,  #自定义随机UserAgent代理池
+   'ArticleSpider.middlewares.RandomProxyMiddleware':541,
+   'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None #配置默认useagent为none,才能够重写
+}
 
 # Enable or disable extensions
 # See https://doc.scrapy.org/en/latest/topics/extensions.html
@@ -83,8 +85,8 @@ IMAGES_STORE = os.path.join(project_dir,"images")  #图片存放的路径
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
-# The initial download delay
-#AUTOTHROTTLE_START_DELAY = 5
+#The initial download delay
+AUTOTHROTTLE_START_DELAY = 10 #限制下载速度
 # The maximum download delay to be set in case of high latencies
 #AUTOTHROTTLE_MAX_DELAY = 60
 # The average number of requests Scrapy should be sending in parallel to
@@ -109,3 +111,5 @@ MYSQL_PASSWORD = "root"
 
 SQL_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 SQL_DATE_FORMAT = "%Y-%m-%d"
+
+RANDOM_UA_TYPE = "random" #随机UserAgent浏览器类型
