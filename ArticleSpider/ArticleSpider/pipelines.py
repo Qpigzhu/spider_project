@@ -6,6 +6,7 @@
 # See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import MySQLdb
 import MySQLdb.cursors
+from ArticleSpider.models.es_jobbole import ArticleType
 
 from  scrapy.pipelines.images import  ImagesPipeline
 from scrapy.exporters import JsonItemExporter
@@ -97,6 +98,9 @@ class MysqlTwistedPipline(object):
 
 
 
+
+
+
 class ArticleImagePipeline(ImagesPipeline):
     # 重写该方法可从result中获取到图片的实际下载路径,并填充到front_image_path字段里面
     def item_completed(self, results, item, info):
@@ -107,3 +111,11 @@ class ArticleImagePipeline(ImagesPipeline):
             return item
 
 
+class elasticsearchPipeline(object):
+    #将数据写入到es中
+
+    def process_item(self, item, spider):
+        #使得可以通用调用此方法,来存入es
+        item.save_to_es()
+
+        return item

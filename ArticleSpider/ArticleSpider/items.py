@@ -6,7 +6,9 @@
 # https://doc.scrapy.org/en/latest/topics/items.html
 
 import datetime
+import redis
 from w3lib.html import remove_tags #去掉网页标签
+from ArticleSpider.models.es_jobbole import ArticleType
 import re
 import scrapy
 from ArticleSpider.settings import SQL_DATETIME_FORMAT
@@ -14,6 +16,12 @@ from ArticleSpider.utlis.common import extract_num,extract_num2
 from scrapy.loader.processors import MapCompose,TakeFirst,Join
 from scrapy.loader import ItemLoader
 
+
+from elasticsearch_dsl.connections import connections
+# 与ElasticSearch进行连接,生成搜索建议
+es = connections.create_connection(ArticleType)
+
+redis_cli = redis.StrictRedis() #；连接redis
 
 class ArticlespiderItem(scrapy.Item):
     # define the fields for your item here like:
@@ -28,6 +36,27 @@ class LogoArticleItemLoader(ItemLoader):
 class ArticleItemLoader(ItemLoader):
     # 自定义itemloader实现默认提取第一个
     default_output_processor = TakeFirst()
+
+
+
+def gen_suggests(index,info_tuple):
+    #搜索完成建议，第一传入表的名字，第二传入(text, 权重)
+    #根据字符串生成搜索建议数组
+    used_words = set()
+    suggests = []
+    for text,weight in info_tuple:
+        if text:
+            #调用es的analyze接口分析字符串
+            words = es.indices.analyze(index=index,body={"analyzer": "ik_max_word", "text": "{0}".format(text)})
+            anylyzed_words = set([r["token"] for r in words["tokens"] if len(r["token"]) > 1])
+            new_words = anylyzed_words - used_words
+        else:
+            new_words = set()
+
+        if new_words:
+            suggests.append({"input": list(new_words), "weight": weight})
+
+    return suggests
 
 
 #伯乐在线
@@ -95,6 +124,27 @@ class JoBoleArticleItem(scrapy.Item):  #伯乐Item
                   self["fav_nums"],self["content"],self["tags"])
 
         return insert_sql,params
+
+
+    def save_to_es(self):
+        article = ArticleType()
+        article.title = self["title"]
+        article.create_date = self["create_date"]
+        article.content = remove_tags(self["content"])
+        article.front_image_url = self["front_image_url"]
+        article.praise_nums = self["praise_nums"]
+        article.fav_nums = self["fav_nums"]
+        article.comment_nums = self["comment_nums"]
+        article.url = self["url"]
+        article.tags = self["tags"]
+        article.meta.id = self["url_object_id"]
+
+
+        article.suggest = gen_suggests("jobbole_blog",((article.title,10),(article.tags,7))) #搜索完成建议，第一传入表的名字，第二传入(text,权重)
+
+        redis_cli.incr("jobbole_count")  #存到redis里面，统计爬取了多少个数据
+        article.save()
+
 
 
 #拉钩网

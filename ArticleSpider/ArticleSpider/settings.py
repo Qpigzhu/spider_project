@@ -28,7 +28,7 @@ ROBOTSTXT_OBEY = False #改为False
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-#DOWNLOAD_DELAY = 3
+DOWNLOAD_DELAY = 5 #限速下载
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -55,7 +55,7 @@ ROBOTSTXT_OBEY = False #改为False
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
    'ArticleSpider.middlewares.RandomUserAgentMiddlware': 543,  #自定义随机UserAgent代理池
-   'ArticleSpider.middlewares.RandomProxyMiddleware':541,
+   # 'ArticleSpider.middlewares.RandomProxyMiddleware':541,
    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None #配置默认useagent为none,才能够重写
 }
 
@@ -74,7 +74,8 @@ ITEM_PIPELINES = {
    #设置图片的函数
    #'scrapy.pipelines.images.ImagesPipeline':1,   #数字越少,执行顺序越高
    # "ArticleSpider.pipelines.ArticleImagePipeline":1,  #setting中设置使用我们自定义的pipeline，而不是系统自带的
-   'ArticleSpider.pipelines.MysqlTwistedPipline':1
+   # 'ArticleSpider.pipelines.MysqlTwistedPipline':1
+   'ArticleSpider.pipelines.elasticsearchPipeline':1
 }
 
 
@@ -86,7 +87,7 @@ IMAGES_STORE = os.path.join(project_dir,"images")  #图片存放的路径
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
 #The initial download delay
-AUTOTHROTTLE_START_DELAY = 10 #限制下载速度
+# AUTOTHROTTLE_START_DELAY = 5 #限制下载速度
 # The maximum download delay to be set in case of high latencies
 #AUTOTHROTTLE_MAX_DELAY = 60
 # The average number of requests Scrapy should be sending in parallel to

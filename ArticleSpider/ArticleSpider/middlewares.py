@@ -8,6 +8,7 @@
 from scrapy import signals
 from fake_useragent import UserAgent
 from ArticleSpider.tools.proxy_ip import GetIp
+import time
 
 
 class ArticlespiderSpiderMiddleware(object):
@@ -133,4 +134,5 @@ class RandomProxyMiddleware(object):
     def process_request(self, request, spider):
         get_ip = GetIp()
         request.meta["proxy"] = get_ip.random_get_ip()
+
 

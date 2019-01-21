@@ -7,6 +7,7 @@ __data__ = '2019\1\19 0019 16:59$'
 import requests
 from scrapy.selector import Selector
 import MySQLdb
+import time
 
 #连接数据库
 conn = MySQLdb.connect(host="127.0.0.1", user="root", passwd="root", db="article_spider", charset="utf8",port=3307)
@@ -14,7 +15,6 @@ cursor = conn.cursor()
 
 def crawl_ips():
     #爬取西刺的免费ip代理
-
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0"}
     for i in range(1,30):
         url = "https://www.xicidaili.com/nn/{}".format(i)
@@ -74,7 +74,7 @@ class GetIp(object):
             return False
         else:
             code = response.status_code
-            if code >= 200 and code < 300:
+            if code == 200:
                 print("effective ip")
                 return True
             else:
